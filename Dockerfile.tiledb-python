@@ -1,0 +1,32 @@
+FROM cc-tiledb-base:2.26
+
+ARG PYTHON_VERSION=3.13.0
+ARG PYTHON_HOME=/opt/python
+ARG TILEDB_LIB=/usr/local/lib/tiledb
+
+RUN mkdir -p ${PYTHON_HOME}  &&\
+    cd ${PYTHON_HOME} &&\
+    wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz &&\
+    tar -xvzf Python-${PYTHON_VERSION}.tgz &&\
+    mv Python-${PYTHON_VERSION} ./src/ &&\
+    cd src &&\
+    ./configure prefix=${PYTHON_HOME} &&\
+    make &&\
+    make install &&\
+    ${PYTHON_HOME}/bin/pip3 install pylance &&\
+    ${PYTHON_HOME}/bin/pip3 install pytest &&\
+    ${PYTHON_HOME}/bin/python3 -m pip install black &&\
+    ${PYTHON_HOME}/bin/python3 -m pip install boto3 &&\
+    ${PYTHON_HOME}/bin/python3 -m pip install dataclasses &&\
+    ${PYTHON_HOME}/bin/python3 -m pip install dataclasses-json &&\
+    mkdir -p /usr/local/py-utils/bin &&\
+    ln -s /usr/local/bin/black /usr/local/py-utils/bin/black &&\
+    ln -s ${TILEDB_LIB}/lib/libtiledb.so /usr/lib/libtiledb.so &&\
+    cd /opt &&\
+    git clone https://github.com/TileDB-Inc/TileDB-Py.git &&\
+    cd TileDB-Py &&\
+    TILEDB_PATH=${TILEDB_LIB} ${PYTHON_HOME}/bin/pip3 install . &&\
+    update-alternatives --install /usr/bin/python python ${PYTHON_HOME}/bin/python3 1 &&\
+    update-alternatives --install /usr/bin/pip pip /opt/python/bin/pip3 1 &&\
+    /opt/python/bin/pip3 install pipx &&\
+    update-alternatives --install /usr/bin/pipx pipx /opt/python/bin/pipx 1
