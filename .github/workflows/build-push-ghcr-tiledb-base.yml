@@ -20,13 +20,10 @@ env:
   OWNER: ${{ github.repository_owner }}
 
 jobs:
-  # Determine which images changed
-  changes:
+  plan:
     runs-on: ubuntu-latest
     outputs:
-      base: ${{ steps.filter.outputs.base }}
-      golang: ${{ steps.filter.outputs.golang }}
-      python: ${{ steps.filter.outputs.python }}
+      matrix: ${{ steps.make_matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -34,37 +31,49 @@ jobs:
         with:
           filters: |
             base:
-              - 'Dockerfile.base'
+              - 'Dockerfile.tiledb-base'
               - 'versions/tiledb-base.txt'
             golang:
-              - 'Dockerfile.golang'
+              - 'Dockerfile.tiledb-golang'
               - 'versions/tiledb-golang.txt'
             python:
-              - 'Dockerfile.python'
+              - 'Dockerfile.tiledb-python'
               - 'versions/tiledb-python.txt'
 
-  # Reusable build job (called for each image)
+      - name: Compute build matrix
+        id: make_matrix
+        shell: bash
+        run: |
+          changed_base='${{ steps.filter.outputs.base }}'
+          changed_go='${{ steps.filter.outputs.golang }}'
+          changed_py='${{ steps.filter.outputs.python }}'
+
+          images=()
+
+          if [[ "$changed_base" == "true" ]]; then
+            images+=(base golang python)
+          else
+            [[ "$changed_go" == "true" ]] && images+=(golang)
+            [[ "$changed_py" == "true" ]] && images+=(python)
+          fi
+
+          # If nothing matched (e.g., weird path combo), bail out cleanly
+          if [[ ${#images[@]} -eq 0 ]]; then
+            echo "matrix=[]" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Emit JSON array: ["base","golang",...]
+          printf 'matrix=%s\n' "$(jq -nc --argjson a "$(printf '%s\n' "${images[@]}" | jq -R . | jq -s .)" '$a')" >> "$GITHUB_OUTPUT"
+
   build:
-    needs: changes
-    if: |
-      (
-        matrix.name == 'base'   && needs.changes.outputs.base   == 'true'
-      ) || (
-        matrix.name == 'golang' && (needs.changes.outputs.golang == 'true' || needs.changes.outputs.base == 'true')
-      ) || (
-        matrix.name == 'python' && (needs.changes.outputs.python == 'true' || needs.changes.outputs.base == 'true')
-      ) || (
-        github.event_name == 'pull_request' &&
-        (
-          (matrix.name == 'base'   && needs.changes.outputs.base   == 'true') ||
-          (matrix.name == 'golang' && (needs.changes.outputs.golang == 'true' || needs.changes.outputs.base == 'true')) ||
-          (matrix.name == 'python' && (needs.changes.outputs.python == 'true' || needs.changes.outputs.base == 'true'))
-        )
-      )
+    needs: plan
+    if: ${{ fromJSON(needs.plan.outputs.matrix).length > 0 }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
+        name: ${{ fromJSON(needs.plan.outputs.matrix) }}
         include:
           - name: base
             dockerfile: Dockerfile.tiledb-base
@@ -78,12 +87,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -92,19 +97,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Generate tags/labels from the version file + latest on main + short SHA
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ matrix.name }}
           tags: |
-            # Semver from file (1.2.3, 1.2, 1)
             type=file,pattern={{version}},file=${{ matrix.version_file }},enable=true
-            type=ref,event=tag
-            # 'latest' only on main
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            # short SHA tag
             type=sha,format=short,prefix=sha-
 
       - name: Build & (conditionally) push multi-arch image
