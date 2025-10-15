@@ -74,10 +74,11 @@ jobs:
           if [[ ${#images[@]} -eq 0 ]]; then
             echo "matrix is empty"
             echo "matrix=[]" >> "$GITHUB_OUTPUT"
+            echo "has_work=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          # Build JSON array without jq dependency
+          # Build JSON array
           json='['
           for i in "${!images[@]}"; do
             [[ $i -gt 0 ]] && json+=','
@@ -87,10 +88,11 @@ jobs:
 
           echo "Computed matrix: $json"
           echo "matrix=$json" >> "$GITHUB_OUTPUT"
+          echo "has_work=true" >> "$GITHUB_OUTPUT"
 
   build:
     needs: plan
-    if: ${{ fromJSON(needs.plan.outputs.matrix).length > 0 }}
+    if: ${{ needs.plan.outputs.has_work == 'true' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
