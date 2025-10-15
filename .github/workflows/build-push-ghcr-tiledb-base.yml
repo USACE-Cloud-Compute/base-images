@@ -32,6 +32,8 @@ jobs:
         id: filter
         with:
           filters: |
+            workflow:
+              - 'build-push-ghcr-tiledb-base.yml'
             base:
               - 'Dockerfile.tiledb-base'
               - 'versions/tiledb-base.txt'
@@ -46,13 +48,14 @@ jobs:
         id: make_matrix
         shell: bash
         run: |
+          changed_workflow='${{ steps.filter.outputs.workflow }}'
           changed_base='${{ steps.filter.outputs.base }}'
           changed_go='${{ steps.filter.outputs.golang }}'
           changed_py='${{ steps.filter.outputs.python }}'
 
           images=()
 
-          if [[ "$changed_base" == "true" ]]; then
+          if [[ "$changed_base" == "true" || "$changed_workflow" == "true" ]]; then
             images+=(base golang python)
           else
             [[ "$changed_go" == "true" ]] && images+=(golang)
