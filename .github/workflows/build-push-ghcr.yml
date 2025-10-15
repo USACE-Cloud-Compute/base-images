@@ -26,6 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.make_matrix.outputs.matrix }}
+      has_work: ${{ steps.make_matrix.outputs.has_work }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -88,7 +89,7 @@ jobs:
 
           echo "Computed matrix: $json"
           echo "matrix=$json" >> "$GITHUB_OUTPUT"
-          echo "has_work='true'" >> "$GITHUB_OUTPUT"
+          echo "has_work=true" >> "$GITHUB_OUTPUT"
 
   build:
     needs: plan
