@@ -33,7 +33,7 @@ jobs:
         with:
           filters: |
             workflow:
-              - 'build-push-ghcr-tiledb-base.yml'
+              - 'github/workflows/build-push-ghcr-tiledb-base.yml'
             base:
               - 'Dockerfile.tiledb-base'
               - 'versions/tiledb-base.txt'
