@@ -4,10 +4,12 @@ on:
   push:
     branches: [main]
     paths:
+      - .github/workflows/build-push-ghcr-tiledb-base.yml
       - "Dockerfile.*"
       - "versions/**"
   pull_request:
     paths:
+      - .github/workflows/build-push-ghcr-tiledb-base.yml
       - "Dockerfile.*"
       - "versions/**"
 
