@@ -65,11 +65,11 @@ jobs:
           images=()
 
           if [[ "$changed_base" == "true" || "$changed_workflow" == "true" ]]; then
-            images+=(base golang python)
+            images+=(cc-tiledb-base cc-tiledb-golang cc-tiledb-python)
             echo "Reason: base/workflow changed → rebuild all"
           else
-            [[ "$changed_go" == "true" ]] && images+=(golang)
-            [[ "$changed_py" == "true" ]] && images+=(python)
+            [[ "$changed_go" == "true" ]] && images+=(cc-tiledb-golang)
+            [[ "$changed_py" == "true" ]] && images+=(cc-tiledb-python)
           fi
 
           if [[ ${#images[@]} -eq 0 ]]; then
