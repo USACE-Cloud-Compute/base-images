@@ -100,13 +100,13 @@ jobs:
       matrix:
         name: ${{ fromJSON(needs.plan.outputs.matrix) }}
         include:
-          - name: base
+          - name: cc-tiledb-base
             dockerfile: Dockerfile.tiledb-base
             version_file: versions/tiledb-base.txt
-          - name: golang
+          - name: cc-tiledb-golang
             dockerfile: Dockerfile.tiledb-golang
             version_file: versions/tiledb-golang.txt
-          - name: python
+          - name: cc-tiledb-python
             dockerfile: Dockerfile.tiledb-python
             version_file: versions/tiledb-python.txt
 
@@ -122,13 +122,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Read and split version
+        id: version
+        run: |
+          v=$(cat ${{ matrix.version_file }})
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "minor=${v%.*}" >> "$GITHUB_OUTPUT"
+          echo "major=${v%%.*}" >> "$GITHUB_OUTPUT"
+
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ matrix.name }}
           tags: |
-            type=file,pattern={{version}},file=${{ matrix.version_file }},enable=true
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=${{ steps.version.outputs.minor }}
+            type=raw,value=${{ steps.version.outputs.major }}
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=sha,format=short,prefix=sha-
 
