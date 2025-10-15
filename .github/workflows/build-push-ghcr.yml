@@ -4,12 +4,12 @@ on:
   push:
     branches: [main]
     paths:
-      - .github/workflows/build-push-ghcr-tiledb-base.yml
+      - .github/workflows/build-push-ghcr.yml
       - "Dockerfile.*"
       - "versions/**"
   pull_request:
     paths:
-      - .github/workflows/build-push-ghcr-tiledb-base.yml
+      - .github/workflows/build-push-ghcr.yml
       - "Dockerfile.*"
       - "versions/**"
 
@@ -33,7 +33,7 @@ jobs:
         with:
           filters: |
             workflow:
-              - 'github/workflows/build-push-ghcr-tiledb-base.yml'
+              - '.github/workflows/build-push-ghcr.yml'
             base:
               - 'Dockerfile.tiledb-base'
               - 'versions/tiledb-base.txt'
