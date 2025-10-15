@@ -48,6 +48,14 @@ jobs:
         id: make_matrix
         shell: bash
         run: |
+          set -Eeuo pipefail
+
+          echo "filter outputs:"
+          echo "  workflow=${{ steps.filter.outputs.workflow }}"
+          echo "  base=${{ steps.filter.outputs.base }}"
+          echo "  golang=${{ steps.filter.outputs.golang }}"
+          echo "  python=${{ steps.filter.outputs.python }}"
+
           changed_workflow='${{ steps.filter.outputs.workflow }}'
           changed_base='${{ steps.filter.outputs.base }}'
           changed_go='${{ steps.filter.outputs.golang }}'
@@ -57,20 +65,28 @@ jobs:
 
           if [[ "$changed_base" == "true" || "$changed_workflow" == "true" ]]; then
             images+=(base golang python)
+            echo "Reason: base/workflow changed → rebuild all"
           else
             [[ "$changed_go" == "true" ]] && images+=(golang)
             [[ "$changed_py" == "true" ]] && images+=(python)
           fi
 
-          # If nothing matched (e.g., weird path combo), bail out cleanly
           if [[ ${#images[@]} -eq 0 ]]; then
-            printf 'matrix is empty'
+            echo "matrix is empty"
             echo "matrix=[]" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          # Emit JSON array: ["base","golang",...]
-          printf 'matrix=%s\n' "$(jq -nc --argjson a "$(printf '%s\n' "${images[@]}" | jq -R . | jq -s .)" '$a')" >> "$GITHUB_OUTPUT"
+          # Build JSON array without jq dependency
+          json='['
+          for i in "${!images[@]}"; do
+            [[ $i -gt 0 ]] && json+=','
+            json+="\"${images[$i]}\""
+          done
+          json+=']'
+
+          echo "Computed matrix: $json"
+          echo "matrix=$json" >> "$GITHUB_OUTPUT"
 
   build:
     needs: plan
