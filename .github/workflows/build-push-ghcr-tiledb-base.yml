@@ -1,0 +1,120 @@
+name: Build & Push Docker Images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Dockerfile.*"
+      - "versions/**"
+  pull_request:
+    paths:
+      - "Dockerfile.*"
+      - "versions/**"
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  OWNER: ${{ github.repository_owner }}
+
+jobs:
+  # Determine which images changed
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      base: ${{ steps.filter.outputs.base }}
+      golang: ${{ steps.filter.outputs.golang }}
+      python: ${{ steps.filter.outputs.python }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            base:
+              - 'Dockerfile.base'
+              - 'versions/tiledb-base.txt'
+            golang:
+              - 'Dockerfile.golang'
+              - 'versions/tiledb-golang.txt'
+            python:
+              - 'Dockerfile.python'
+              - 'versions/tiledb-python.txt'
+
+  # Reusable build job (called for each image)
+  build:
+    needs: changes
+    if: |
+      (
+        matrix.name == 'base'   && needs.changes.outputs.base   == 'true'
+      ) || (
+        matrix.name == 'golang' && (needs.changes.outputs.golang == 'true' || needs.changes.outputs.base == 'true')
+      ) || (
+        matrix.name == 'python' && (needs.changes.outputs.python == 'true' || needs.changes.outputs.base == 'true')
+      ) || (
+        github.event_name == 'pull_request' &&
+        (
+          (matrix.name == 'base'   && needs.changes.outputs.base   == 'true') ||
+          (matrix.name == 'golang' && (needs.changes.outputs.golang == 'true' || needs.changes.outputs.base == 'true')) ||
+          (matrix.name == 'python' && (needs.changes.outputs.python == 'true' || needs.changes.outputs.base == 'true'))
+        )
+      )
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: base
+            dockerfile: Dockerfile.tiledb-base
+            version_file: versions/tiledb-base.txt
+          - name: golang
+            dockerfile: Dockerfile.tiledb-golang
+            version_file: versions/tiledb-golang.txt
+          - name: python
+            dockerfile: Dockerfile.tiledb-python
+            version_file: versions/tiledb-python.txt
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Generate tags/labels from the version file + latest on main + short SHA
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ matrix.name }}
+          tags: |
+            # Semver from file (1.2.3, 1.2, 1)
+            type=file,pattern={{version}},file=${{ matrix.version_file }},enable=true
+            type=ref,event=tag
+            # 'latest' only on main
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            # short SHA tag
+            type=sha,format=short,prefix=sha-
+
+      - name: Build & (conditionally) push multi-arch image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
