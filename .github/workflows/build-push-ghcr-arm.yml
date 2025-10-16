@@ -4,12 +4,12 @@ on:
   push:
     branches: [main]
     paths:
-      - .github/workflows/build-push-ghcr.yml
+      - .github/workflows/build-push-ghcr-arm.yml
       - "Dockerfile.*"
       - "versions/**"
   pull_request:
     paths:
-      - .github/workflows/build-push-ghcr.yml
+      - .github/workflows/build-push-ghcr-arm.yml
       - "Dockerfile.*"
       - "versions/**"
 
@@ -23,7 +23,7 @@ env:
 
 jobs:
   plan:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     outputs:
       matrix: ${{ steps.make_matrix.outputs.matrix }}
       has_work: ${{ steps.make_matrix.outputs.has_work }}
@@ -34,7 +34,7 @@ jobs:
         with:
           filters: |
             workflow:
-              - '.github/workflows/build-push-ghcr.yml'
+              - '.github/workflows/build-push-ghcr-arm.yml'
             base:
               - 'Dockerfile.tiledb-base'
               - 'versions/tiledb-base.txt'
@@ -65,11 +65,11 @@ jobs:
           images=()
 
           if [[ "$changed_base" == "true" || "$changed_workflow" == "true" ]]; then
-            images+=(cc-tiledb-base cc-tiledb-golang cc-tiledb-python)
+            images+=(cc-tiledb-base-arm cc-tiledb-golang-arm cc-tiledb-python-arm)
             echo "Reason: base/workflow changed → rebuild all"
           else
-            [[ "$changed_go" == "true" ]] && images+=(cc-tiledb-golang)
-            [[ "$changed_py" == "true" ]] && images+=(cc-tiledb-python)
+            [[ "$changed_go" == "true" ]] && images+=(cc-tiledb-golang-arm)
+            [[ "$changed_py" == "true" ]] && images+=(cc-tiledb-python-arm)
           fi
 
           if [[ ${#images[@]} -eq 0 ]]; then
@@ -94,19 +94,19 @@ jobs:
   build:
     needs: plan
     if: ${{ needs.plan.outputs.has_work == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     strategy:
       fail-fast: false
       matrix:
         name: ${{ fromJSON(needs.plan.outputs.matrix) }}
         include:
-          - name: cc-tiledb-base
+          - name: cc-tiledb-base-arm
             dockerfile: Dockerfile.tiledb-base
             version_file: versions/tiledb-base.txt
-          - name: cc-tiledb-golang
+          - name: cc-tiledb-golang-arm
             dockerfile: Dockerfile.tiledb-golang
             version_file: versions/tiledb-golang.txt
-          - name: cc-tiledb-python
+          - name: cc-tiledb-python-arm
             dockerfile: Dockerfile.tiledb-python
             version_file: versions/tiledb-python.txt
 
@@ -149,7 +149,7 @@ jobs:
         with:
           context: .
           file: ${{ matrix.dockerfile }}
-          platforms: linux/amd64
+          platforms: linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
