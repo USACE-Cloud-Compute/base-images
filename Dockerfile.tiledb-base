@@ -12,7 +12,7 @@ ENV LIBRARY_PATH="${TILEDB_LIB}/lib"
 
 RUN apt update &&\
     apt -y install libssl-dev libbz2-dev libgdbm-dev uuid-dev libncurses-dev libffi-dev libgdbm-compat-dev sqlite3 lzma lzma-dev &&\
-    apt -y install git wget build-essential cmake ninja-build doxygen curl zip unzip tar &&\
+    apt -y install git wget build-essential cmake ninja-build doxygen curl zip unzip tar pkg-config &&\
     wget https://github.com/TileDB-Inc/TileDB/archive/refs/tags/${TILEDB_VERSION}.tar.gz &&\
     tar -xvzf ./${TILEDB_VERSION}.tar.gz  &&\
     mv /TileDB-${TILEDB_VERSION} /opt/tiledb &&\
