@@ -61,7 +61,7 @@ jobs:
       - name: Read and split version
         id: version
         run: |
-          v=$(cat ${{ env.version_file }})
+          v=$(cat ${{ env.VERSION_FILE }})
           echo "version=$v" >> "$GITHUB_OUTPUT"
           echo "minor=${v%.*}" >> "$GITHUB_OUTPUT"
           echo "major=${v%%.*}" >> "$GITHUB_OUTPUT"
