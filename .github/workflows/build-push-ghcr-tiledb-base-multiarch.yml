@@ -37,7 +37,7 @@ jobs:
             platforms: linux/amd64
             suffix: amd64
           - arch: arm64
-            runs_on: ubuntu-24.04-arm64
+            runs_on: ubuntu-24.04-arm
             platforms: linux/arm64
             suffix: arm64
     runs-on: ${{ matrix.runs_on }}
