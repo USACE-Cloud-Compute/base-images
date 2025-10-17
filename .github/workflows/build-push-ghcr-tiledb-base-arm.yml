@@ -28,7 +28,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: cc-tiledb-base
+          - name: cc-tiledb-base-arm
             dockerfile: Dockerfile.tiledb-base
             version_file: versions/tiledb-base.txt
 
