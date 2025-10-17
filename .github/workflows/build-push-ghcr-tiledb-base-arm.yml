@@ -1,15 +1,15 @@
-name: Build & Push TileDB Base (x86)
+name: Build & Push TileDB Base (arm)
 
 on:
   push:
     branches: [main]
     paths:
-      - .github/workflows/build-push-ghcr-base.yml
+      - .github/workflows/build-push-ghcr-tiledb-base-arm.yml
       - "Dockerfile.tiledb-base"
       - "versions/tiledb-base.txt"
   pull_request:
     paths:
-      - .github/workflows/build-push-ghcr-base.yml
+      - .github/workflows/build-push-ghcr-tiledb-base-arm.yml
       - "Dockerfile.tiledb-base"
       - "versions/tiledb-base.txt"
 
@@ -23,7 +23,7 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     strategy:
       fail-fast: false
       matrix:
@@ -68,7 +68,7 @@ jobs:
         with:
           context: .
           file: ${{ matrix.dockerfile }}
-          platforms: linux/amd64
+          platforms: linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
