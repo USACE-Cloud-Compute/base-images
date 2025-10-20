@@ -19,7 +19,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  OWNER: ${{ github.repository_owner }}
+  OWNER: usace-cloud-compute
   IMAGE_NAME: cc-tiledb-base
   DOCKERFILE: Dockerfile.tiledb-base
   VERSION_FILE: versions/tiledb-base.txt
