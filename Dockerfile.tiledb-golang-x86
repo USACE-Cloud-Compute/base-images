@@ -1,0 +1,13 @@
+FROM ghcr.io/usace-cloud-compute/cc-tiledb-base
+
+ARG TILEDB_LIB=/usr/local/lib/tiledb
+
+ENV PATH=/go/bin:$PATH
+ENV CGO_LDFLAGS="-L${TILEDB_LIB}/lib"
+ENV CGO_CFLAGS="-I${TILEDB_LIB}/include"
+ENV GOROOT=/go
+ENV GOPATH=/src/go
+
+RUN wget https://golang.org/dl/go1.23.9.linux-amd64.tar.gz -P / &&\
+    tar -xvzf /go1.23.9.linux-amd64.tar.gz -C /
+    
